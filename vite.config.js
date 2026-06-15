@@ -20,18 +20,31 @@ export default defineConfig({
         theme_color: '#45A29E',
         background_color: '#000000',
         display: 'standalone',
+        start_url: '/',
         icons: [
+          {
+            src: '/mtc-logo-v5.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/mtc-logo-v5.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
           {
             src: '/icons/icon-192.webp',
             sizes: '192x192',
             type: 'image/webp',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           },
           {
             src: '/icons/icon-512.webp',
             sizes: '512x512',
             type: 'image/webp',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       }
