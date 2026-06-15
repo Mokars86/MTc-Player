@@ -19,7 +19,8 @@ export default function SplashScreen({ onComplete }) {
       clearTimeout(fadeTimer);
       clearTimeout(completeTimer);
     };
-  }, [onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={`splash-screen-container ${isFading ? 'fade-out' : ''}`}>
