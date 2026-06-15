@@ -1,0 +1,61 @@
+/* App Layout Definitions */
+
+.desktop-app-container {
+  display: grid;
+  grid-template-columns: 240px 1fr 300px;
+  grid-template-rows: calc(100vh - 90px) 90px;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--color-base);
+  overflow: hidden;
+}
+
+/* On desktop, docked player spans all columns at the bottom */
+.desktop-app-container > .docked-player {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  border-top: 1px solid var(--color-surface);
+  background: var(--color-base);
+  z-index: 10;
+}
+
+/* Mobile Swipe Architecture */
+.mobile-app-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: max(env(safe-area-inset-top), 35px);
+  box-sizing: border-box;
+}
+
+.mobile-swipe-wrapper {
+  display: flex;
+  width: 300vw;
+  flex: 1; /* Take exactly the remaining space after top padding */
+  min-height: 0; /* CRITICAL FIX: prevents infinite growth in flex container */
+  transition: transform 0.4s cubic-bezier(0.15, 0.85, 0.35, 1);
+  will-change: transform;
+}
+
+.mobile-pane {
+  width: 100vw;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-base);
+  padding-bottom: 80px; /* Reserve space at the bottom for docked player */
+  box-sizing: border-box;
+}
+
+.mobile-app-container > .docked-player {
+  height: 80px;
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  border-top: 1px solid var(--color-surface);
+  background: var(--color-base);
+  z-index: 10;
+}

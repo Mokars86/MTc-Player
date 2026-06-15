@@ -1,0 +1,173 @@
+.stem-mixer-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background-color: var(--color-base);
+  border-left: 1px solid var(--color-surface);
+}
+
+.mixer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.mixer-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.mixer-header button {
+  color: var(--color-text-muted);
+}
+
+.stems-wrapper {
+  display: flex;
+  justify-content: space-between;
+  flex-grow: 1;
+  margin-bottom: 20px;
+}
+
+.stem-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+}
+
+.master-column {
+  border-left: 1px solid var(--color-surface);
+  padding-left: 15px;
+  margin-left: 5px;
+}
+
+.stem-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  height: 60px;
+  text-align: left;
+}
+
+.stem-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-main);
+  margin-bottom: 15px;
+}
+
+/* Desktop Tactile Fader */
+.fader-mode .fader-track {
+  position: relative;
+  height: 100%;
+  width: 20px;
+  background: var(--color-surface);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.tactile-fader {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 100%;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  background: transparent;
+  outline: none;
+  z-index: 2;
+}
+
+/* Customizing the slider thumb (knob) */
+.tactile-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 40px;
+  background: var(--color-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 2px 4px var(--color-border);
+  transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+.tactile-fader::-webkit-slider-thumb:active {
+  background: var(--color-stem-neon);
+  box-shadow: 0 0 15px var(--color-stem-neon); /* Micro-glow effect */
+}
+
+/* The glowing track fill below the thumb */
+.fader-glow {
+  position: absolute;
+  bottom: 0;
+  width: 6px;
+  background: var(--color-primary);
+  border-radius: 3px;
+  z-index: 1;
+  box-shadow: 0 0 10px rgba(69, 162, 158, 0.5);
+  pointer-events: none;
+  transition: height 0.1s;
+}
+
+.master-fader::-webkit-slider-thumb {
+  background: var(--color-stem-neon);
+}
+.master-fader + .fader-glow {
+  background: var(--color-stem-neon);
+  box-shadow: 0 0 10px rgba(102, 252, 241, 0.6);
+}
+
+.master-icon {
+  margin-top: 15px;
+  color: var(--color-text-muted);
+}
+
+/* Mobile Gesture Zone */
+.gesture-mode .gesture-zone {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.gesture-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(to top, var(--color-primary), var(--color-stem-neon));
+  transition: height 0.1s ease-out;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.mixer-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.save-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(69, 162, 158, 0.1);
+  color: var(--color-primary);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.save-preset-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-base);
+}

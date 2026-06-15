@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/mtc-logo-v5.png" />
+    <meta name="theme-color" content="#45A29E" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#45A29E" />
+
+    <title>MTc Player</title>
+  </head>
+  <body>
+    <div id="root">
+      <style>
+        body, html { margin: 0; padding: 0; background: #000000; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .web-splash { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background: #000000; }
+        .web-splash img { width: 120px; height: 120px; border-radius: 24px; box-shadow: 0 0 30px rgba(69, 162, 158, 0.4); animation: pulse 2s infinite ease-in-out; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+      </style>
+      <div class="web-splash">
+        <img src="/mtc-logo-v5.png" alt="MTc Player Loading..." />
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

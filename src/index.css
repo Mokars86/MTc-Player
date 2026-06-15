@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+body.theme-luminous-teal {
+  --color-base: #0B0C10;
+  --color-surface: #1F2833;
+  --color-primary: #45A29E;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #C5C6C7;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body.theme-neon-purple {
+  --color-base: #0F0C20;
+  --color-surface: #201A3F;
+  --color-primary: #B245A2;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #D1C6E7;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body.theme-crimson-red {
+  --color-base: #100B0C;
+  --color-surface: #331F22;
+  --color-primary: #E24545;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #E7C5CA;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body.theme-day-mode {
+  --color-base: #F5F7FA;
+  --color-surface: #FFFFFF;
+  --color-primary: #007AFF;
+  --color-text-main: #1A1D20;
+  --color-text-muted: #6B7280;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-hover: rgba(0, 0, 0, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body.theme-vlc-orange {
+  --color-base: #121212;
+  --color-surface: #262626;
+  --color-primary: #FF8800;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #D4D4D4;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body.theme-classic-red {
+  --color-base: #100505;
+  --color-surface: #2E1515;
+  --color-primary: #FF2A2A;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #E2C7C7;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-base);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+ul {
+  list-style: none;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-base); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface); 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted); 
+}

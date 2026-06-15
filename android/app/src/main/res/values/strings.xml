@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MTc Player</string>
+    <string name="title_activity_main">MTc Player</string>
+    <string name="package_name">com.mtc.player</string>
+    <string name="custom_url_scheme">com.mtc.player</string>
+</resources>
