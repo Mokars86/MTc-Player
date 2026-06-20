@@ -117,3 +117,25 @@ ul {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted); 
 }
+
+/* TV D-pad Focus Styles */
+:focus, :focus-visible {
+  outline: 3px solid var(--color-primary) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 15px var(--color-primary) !important;
+  transform: scale(1.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
+}
+
+/* Track list item focus style overrides */
+.track-list ul li:focus,
+.sidebar-nav ul li:focus,
+.sidebar-playlists ul li:focus,
+.track-card:focus,
+.playlist-card:focus {
+  outline: 3px solid var(--color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: rgba(69, 162, 158, 0.15) !important;
+  transform: scale(1.01);
+}
+

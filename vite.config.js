@@ -50,6 +50,10 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    target: 'es2017',
+    minify: 'esbuild'
+  },
   server: {
     port: 1112
   }

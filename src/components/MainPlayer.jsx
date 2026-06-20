@@ -1,10 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, List, Loader2, Disc3, PlayCircle, Trash2, AlertTriangle, MoreVertical, Plus, ChevronLeft, SlidersHorizontal, ListMusic, Clock, Play, HardDrive, CheckSquare, Square } from 'lucide-react';
+import { LayoutGrid, List, Loader2, Disc3, PlayCircle, Trash2, AlertTriangle, MoreVertical, Plus, ChevronLeft, SlidersHorizontal, ListMusic, Clock, Play, Pause, Volume2, HardDrive, CheckSquare, Square } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import { localAudioService } from '../services/localAudioService';
+import { get, set } from 'idb-keyval';
 import './MainPlayer.css';
 
-export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refreshTrigger, activeView, currentTrack, onPlayTrack, isPlaying, theme, setTheme, onLibraryClear, searchQuery, queue, setQueue, sleepTimer, setSleepTimer, analyserNodeRef, progress, duration, setActiveView }) {
+export default function MainPlayer({ 
+  onLeftSwipe, 
+  onRightSwipe, 
+  isMobile, 
+  refreshTrigger, 
+  activeView, 
+  currentTrackA, 
+  isPlayingA, 
+  progressA, 
+  durationA, 
+  volumeA, 
+  setVolumeA, 
+  togglePlayA, 
+  seekA, 
+  currentTrackB, 
+  isPlayingB, 
+  progressB, 
+  durationB, 
+  volumeB, 
+  setVolumeB, 
+  togglePlayB, 
+  seekB, 
+  crossfadeValue, 
+  setCrossfadeValue, 
+  onPlayTrack, 
+  theme, 
+  setTheme, 
+  onLibraryClear, 
+  searchQuery, 
+  queue, 
+  setQueue, 
+  sleepTimer, 
+  setSleepTimer, 
+  analyserNodeRef, 
+  setActiveView 
+}) {
   const [tracks, setTracks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
@@ -14,6 +50,29 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedTracks, setSelectedTracks] = useState([]);
   const canvasRef = useRef(null);
+  const [playlists, setPlaylists] = useState([]);
+  const [selectedTrackToLoad, setSelectedTrackToLoad] = useState(null);
+
+  const handleKeyDown = (e, callback) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback(e);
+    }
+  };
+
+  useEffect(() => {
+    const loadPlaylists = async () => {
+      try {
+        const saved = await get('mtc_playlists');
+        if (saved) {
+          setPlaylists(saved);
+        }
+      } catch (err) {
+        console.error('Failed to load playlists in MainPlayer:', err);
+      }
+    };
+    loadPlaylists();
+  }, [activeView]);
 
   // Visualizer Logic
   useEffect(() => {
@@ -85,6 +144,40 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
           ctx.moveTo(x, y);
           ctx.lineTo(xEnd, yEnd);
           ctx.stroke();
+        }
+      } else if (visualizerType === 'fire') {
+        analyser.getByteFrequencyData(dataArray);
+        const width = canvas.width;
+        const height = canvas.height;
+        const numFlames = Math.min(bufferLength, 60);
+        const flameWidth = width / numFlames;
+        
+        for (let i = 0; i < numFlames; i++) {
+          const value = dataArray[i];
+          const percent = value / 255;
+          const flameHeight = percent * height * 0.95;
+          const x = i * flameWidth;
+          const y = height;
+          
+          const grad = ctx.createLinearGradient(x, y, x, y - flameHeight);
+          grad.addColorStop(0, 'rgba(255, 0, 0, 0.85)');
+          grad.addColorStop(0.3, 'rgba(255, 100, 0, 0.9)');
+          grad.addColorStop(0.7, 'rgba(255, 200, 0, 0.95)');
+          grad.addColorStop(1, 'rgba(255, 255, 200, 1)');
+          
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.quadraticCurveTo(x + flameWidth / 2, y - flameHeight * 1.1, x + flameWidth, y);
+          ctx.closePath();
+          ctx.fill();
+          
+          if (value > 150 && Math.random() > 0.85) {
+            ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+            ctx.beginPath();
+            ctx.arc(x + Math.random() * flameWidth, y - flameHeight - Math.random() * 20, Math.random() * 3 + 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     };
@@ -169,39 +262,49 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
     }
   };
 
-  const handleAddToPlaylist = (e, track, playlistId) => {
+  const handleAddToPlaylist = async (e, track, playlistId) => {
     e.stopPropagation();
-    const playlists = JSON.parse(localStorage.getItem('mtc_playlists') || '[]');
-    const targetPlaylist = playlists.find(p => p.id === playlistId);
-    if (targetPlaylist) {
-      if (!targetPlaylist.tracks) targetPlaylist.tracks = [];
-      if (!targetPlaylist.tracks.includes(track.fileName)) {
-        targetPlaylist.tracks.push(track.fileName);
-        localStorage.setItem('mtc_playlists', JSON.stringify(playlists));
-        alert(`Added ${track.title} to ${targetPlaylist.name}`);
-      } else {
-        alert("Track is already in this playlist.");
+    try {
+      const playlistsData = (await get('mtc_playlists')) || [];
+      const targetPlaylist = playlistsData.find(p => p.id === playlistId);
+      if (targetPlaylist) {
+        if (!targetPlaylist.tracks) targetPlaylist.tracks = [];
+        if (!targetPlaylist.tracks.includes(track.fileName)) {
+          targetPlaylist.tracks.push(track.fileName);
+          await set('mtc_playlists', playlistsData);
+          setPlaylists(playlistsData);
+          alert(`Added ${track.title} to ${targetPlaylist.name}`);
+        } else {
+          alert("Track is already in this playlist.");
+        }
       }
+    } catch (err) {
+      console.error('Failed to add to playlist:', err);
     }
     setActiveMenuId(null);
     setShowAddToPlaylist(null);
   };
 
-  const handleAddMultipleToPlaylist = (playlistId) => {
-    const playlists = JSON.parse(localStorage.getItem('mtc_playlists') || '[]');
-    const targetPlaylist = playlists.find(p => p.id === playlistId);
-    if (targetPlaylist) {
-      if (!targetPlaylist.tracks) targetPlaylist.tracks = [];
-      let addedCount = 0;
-      selectedTracks.forEach(trackId => {
-        const track = tracks.find(t => t.id === trackId);
-        if (track && !targetPlaylist.tracks.includes(track.fileName)) {
-          targetPlaylist.tracks.push(track.fileName);
-          addedCount++;
-        }
-      });
-      localStorage.setItem('mtc_playlists', JSON.stringify(playlists));
-      alert(`Added ${addedCount} tracks to ${targetPlaylist.name}`);
+  const handleAddMultipleToPlaylist = async (playlistId) => {
+    try {
+      const playlistsData = (await get('mtc_playlists')) || [];
+      const targetPlaylist = playlistsData.find(p => p.id === playlistId);
+      if (targetPlaylist) {
+        if (!targetPlaylist.tracks) targetPlaylist.tracks = [];
+        let addedCount = 0;
+        selectedTracks.forEach(trackId => {
+          const track = tracks.find(t => t.id === trackId);
+          if (track && !targetPlaylist.tracks.includes(track.fileName)) {
+            targetPlaylist.tracks.push(track.fileName);
+            addedCount++;
+          }
+        });
+        await set('mtc_playlists', playlistsData);
+        setPlaylists(playlistsData);
+        alert(`Added ${addedCount} tracks to ${targetPlaylist.name}`);
+      }
+    } catch (err) {
+      console.error('Failed to add multiple to playlist:', err);
     }
     setIsSelectMode(false);
     setSelectedTracks([]);
@@ -225,7 +328,6 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
     // Filter by Playlist if activeView is a playlist
     if (activeView.startsWith('playlist-')) {
       const playlistId = activeView.split('-')[1];
-      const playlists = JSON.parse(localStorage.getItem('mtc_playlists') || '[]');
       const targetPlaylist = playlists.find(p => p.id === playlistId);
       if (targetPlaylist && targetPlaylist.tracks) {
         filtered = filtered.filter(t => targetPlaylist.tracks.includes(t.fileName));
@@ -253,7 +355,13 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
         <h3>Quick Picks</h3>
         <div className="cards-grid">
           {tracks.slice(0, 4).map(track => (
-            <div key={track.id} className="track-card" onClick={() => onPlayTrack && onPlayTrack(track)}>
+            <div 
+              key={track.id} 
+              className="track-card" 
+              onClick={() => setSelectedTrackToLoad(track)}
+              tabIndex={0}
+              onKeyDown={(e) => handleKeyDown(e, () => setSelectedTrackToLoad(track))}
+            >
               <div className="card-art">
                 <PlayCircle size={32} className="play-icon" />
               </div>
@@ -266,8 +374,14 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
       <div className="home-section">
         <h3>Your Playlists</h3>
         <div className="cards-grid">
-          {JSON.parse(localStorage.getItem('mtc_playlists') || '[]').map(p => (
-             <div key={p.id} className="track-card playlist-card" onClick={() => setActiveView && setActiveView(`playlist-${p.id}`)}>
+          {playlists.map(p => (
+             <div 
+               key={p.id} 
+               className="track-card playlist-card" 
+               onClick={() => setActiveView && setActiveView(`playlist-${p.id}`)}
+               tabIndex={0}
+               onKeyDown={(e) => handleKeyDown(e, () => setActiveView && setActiveView(`playlist-${p.id}`))}
+             >
                <div className="card-art"><Disc3 size={32} /></div>
                <span className="card-title">{p.name}</span>
              </div>
@@ -280,75 +394,266 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
   const renderNowPlaying = () => {
     const radius = 95;
     const circumference = 2 * Math.PI * radius;
-    const dashOffset = duration > 0 ? circumference - (progress / duration) * circumference : circumference;
+    const dashOffsetA = durationA > 0 ? circumference - (progressA / durationA) * circumference : circumference;
+    const dashOffsetB = durationB > 0 ? circumference - (progressB / durationB) * circumference : circumference;
+
+    const formatTime = (time) => {
+      if (!time || isNaN(time)) return '0:00';
+      const m = Math.floor(time / 60);
+      const s = Math.floor(time % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
 
     return (
-    <div className="now-playing-view">
-      <div className="visualizer-container" style={{ width: '100%', height: '280px', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '10px 0' }}>
-        {(analyserNodeRef?.current && visualizerType !== 'disc') ? (
-          <canvas ref={canvasRef} width="300" height="150" style={{ width: '100%', maxWidth: '400px', height: '100%', borderRadius: '8px' }}></canvas>
-        ) : (
-          <div className={`virtual-disc-container ${isPlaying ? 'spinning' : ''}`}>
-            <svg viewBox="0 0 220 220" className="disc-progress-ring">
-              <defs>
-                <mask id="progress-mask">
+      <div className="now-playing-view dual-deck-view">
+        <div className="decks-container">
+          {/* DECK A */}
+          <div className="deck-panel deck-panel-a" tabIndex={0}>
+            <div className="deck-header">
+              <span className="deck-badge badge-a">Deck A</span>
+            </div>
+            
+            <div className="deck-disc-section">
+              <div className={`virtual-disc-container ${isPlayingA ? 'spinning' : ''}`}>
+                <svg viewBox="0 0 220 220" className="disc-progress-ring">
+                  <defs>
+                    <mask id="progress-mask-a">
+                      <circle
+                        stroke="white"
+                        strokeWidth="10"
+                        strokeDasharray={`${circumference} ${circumference}`}
+                        style={{ strokeDashoffset: dashOffsetA }}
+                        fill="transparent"
+                        r={radius}
+                        cx="110"
+                        cy="110"
+                      />
+                    </mask>
+                  </defs>
                   <circle
-                    stroke="white"
-                    strokeWidth="10"
-                    strokeDasharray={`${circumference} ${circumference}`}
-                    style={{ strokeDashoffset: dashOffset }}
+                    stroke="var(--color-surface)"
+                    strokeWidth="8"
+                    strokeDasharray="8 6"
                     fill="transparent"
                     r={radius}
                     cx="110"
                     cy="110"
                   />
-                </mask>
-              </defs>
-              <circle
-                stroke="var(--color-surface)"
-                strokeWidth="8"
-                strokeDasharray="8 6"
-                fill="transparent"
-                r={radius}
-                cx="110"
-                cy="110"
-              />
-              <circle
-                stroke="var(--color-primary)"
-                strokeWidth="8"
-                strokeDasharray="8 6"
-                fill="transparent"
-                r={radius}
-                cx="110"
-                cy="110"
-                mask="url(#progress-mask)"
-              />
-            </svg>
-            <div className="virtual-disc" style={{background: '#111'}}>
-              <div className="grooves"></div>
-              <div className="glass-glare"></div>
-              <div className="disc-center" style={{background: 'var(--color-primary)', width: '60px', height: '60px', border: '3px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column'}}>
-                 <div className="disc-hole" style={{zIndex: 2, width: '10px', height: '10px', background: '#000'}}></div>
-                 <span style={{color: 'white', fontWeight: '900', fontSize: '8px', marginTop: '6px', letterSpacing: '0px'}}>MTc Player</span>
+                  <circle
+                    stroke="var(--color-primary)"
+                    strokeWidth="8"
+                    strokeDasharray="8 6"
+                    fill="transparent"
+                    r={radius}
+                    cx="110"
+                    cy="110"
+                    mask="url(#progress-mask-a)"
+                  />
+                </svg>
+                <div className="virtual-disc" style={{background: '#111'}}>
+                  <div className="grooves"></div>
+                  <div className="glass-glare"></div>
+                  <div className="disc-center" style={{background: 'var(--color-primary)', width: '60px', height: '60px', border: '3px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column'}}>
+                     <div className="disc-hole" style={{zIndex: 2, width: '10px', height: '10px', background: '#000'}}></div>
+                     <span style={{color: 'white', fontWeight: '900', fontSize: '8px', marginTop: '6px', letterSpacing: '0px'}}>Deck A</span>
+                  </div>
+                </div>
+                <div className="disc-shadow"></div>
               </div>
             </div>
-            <div className="disc-shadow"></div>
+
+            <div className="deck-info">
+              <h2 className="deck-track-title">{currentTrackA ? currentTrackA.title : 'Empty Deck A'}</h2>
+              <h3 className="deck-track-artist">{currentTrackA ? currentTrackA.artist : 'Load a track'}</h3>
+            </div>
+
+            <div className="deck-controls">
+              <button 
+                className="deck-control-btn play-pause-btn" 
+                onClick={togglePlayA}
+                disabled={!currentTrackA}
+                tabIndex={0}
+                onKeyDown={(e) => handleKeyDown(e, togglePlayA)}
+                title="Play/Pause A"
+              >
+                {isPlayingA ? <Pause size={24} /> : <Play size={24} />}
+              </button>
+
+              <div className="deck-volume-wrapper">
+                <Volume2 size={16} style={{ flexShrink: 0 }} />
+                <input 
+                  type="range"
+                  className="deck-volume-slider"
+                  min="0"
+                  max="100"
+                  value={volumeA}
+                  onChange={(e) => setVolumeA(Number(e.target.value))}
+                  tabIndex={0}
+                  title="Deck A Volume"
+                />
+                <span className="volume-label">{volumeA}%</span>
+              </div>
+            </div>
+
+            <div className="deck-progress">
+              <span className="time">{formatTime(progressA)}</span>
+              <input 
+                type="range"
+                className="deck-progress-slider"
+                min="0"
+                max={durationA || 100}
+                value={progressA}
+                onChange={(e) => seekA(Number(e.target.value))}
+                disabled={!currentTrackA}
+                tabIndex={0}
+                title="Deck A Progress"
+              />
+              <span className="time">{formatTime(durationA)}</span>
+            </div>
+          </div>
+
+          {/* DECK B */}
+          <div className="deck-panel deck-panel-b" tabIndex={0}>
+            <div className="deck-header">
+              <span className="deck-badge badge-b">Deck B</span>
+            </div>
+            
+            <div className="deck-disc-section">
+              <div className={`virtual-disc-container ${isPlayingB ? 'spinning' : ''}`}>
+                <svg viewBox="0 0 220 220" className="disc-progress-ring">
+                  <defs>
+                    <mask id="progress-mask-b">
+                      <circle
+                        stroke="white"
+                        strokeWidth="10"
+                        strokeDasharray={`${circumference} ${circumference}`}
+                        style={{ strokeDashoffset: dashOffsetB }}
+                        fill="transparent"
+                        r={radius}
+                        cx="110"
+                        cy="110"
+                      />
+                    </mask>
+                  </defs>
+                  <circle
+                    stroke="var(--color-surface)"
+                    strokeWidth="8"
+                    strokeDasharray="8 6"
+                    fill="transparent"
+                    r={radius}
+                    cx="110"
+                    cy="110"
+                  />
+                  <circle
+                    stroke="var(--color-primary)"
+                    strokeWidth="8"
+                    strokeDasharray="8 6"
+                    fill="transparent"
+                    r={radius}
+                    cx="110"
+                    cy="110"
+                    mask="url(#progress-mask-b)"
+                  />
+                </svg>
+                <div className="virtual-disc" style={{background: '#111'}}>
+                  <div className="grooves"></div>
+                  <div className="glass-glare"></div>
+                  <div className="disc-center" style={{background: 'var(--color-primary)', width: '60px', height: '60px', border: '3px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column'}}>
+                     <div className="disc-hole" style={{zIndex: 2, width: '10px', height: '10px', background: '#000'}}></div>
+                     <span style={{color: 'white', fontWeight: '900', fontSize: '8px', marginTop: '6px', letterSpacing: '0px'}}>Deck B</span>
+                  </div>
+                </div>
+                <div className="disc-shadow"></div>
+              </div>
+            </div>
+
+            <div className="deck-info">
+              <h2 className="deck-track-title">{currentTrackB ? currentTrackB.title : 'Empty Deck B'}</h2>
+              <h3 className="deck-track-artist">{currentTrackB ? currentTrackB.artist : 'Load a track'}</h3>
+            </div>
+
+            <div className="deck-controls">
+              <button 
+                className="deck-control-btn play-pause-btn" 
+                onClick={togglePlayB}
+                disabled={!currentTrackB}
+                tabIndex={0}
+                onKeyDown={(e) => handleKeyDown(e, togglePlayB)}
+                title="Play/Pause B"
+              >
+                {isPlayingB ? <Pause size={24} /> : <Play size={24} />}
+              </button>
+
+              <div className="deck-volume-wrapper">
+                <Volume2 size={16} style={{ flexShrink: 0 }} />
+                <input 
+                  type="range"
+                  className="deck-volume-slider"
+                  min="0"
+                  max="100"
+                  value={volumeB}
+                  onChange={(e) => setVolumeB(Number(e.target.value))}
+                  tabIndex={0}
+                  title="Deck B Volume"
+                />
+                <span className="volume-label">{volumeB}%</span>
+              </div>
+            </div>
+
+            <div className="deck-progress">
+              <span className="time">{formatTime(progressB)}</span>
+              <input 
+                type="range"
+                className="deck-progress-slider"
+                min="0"
+                max={durationB || 100}
+                value={progressB}
+                onChange={(e) => seekB(Number(e.target.value))}
+                disabled={!currentTrackB}
+                tabIndex={0}
+                title="Deck B Progress"
+              />
+              <span className="time">{formatTime(durationB)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* MIXER PANEL */}
+        <div className="mixer-panel">
+          <div className="crossfader-container">
+            <span className="crossfade-side-label">A</span>
+            <input 
+              type="range"
+              className="crossfader-slider"
+              min="-1"
+              max="1"
+              step="0.01"
+              value={crossfadeValue}
+              onChange={(e) => setCrossfadeValue(Number(e.target.value))}
+              tabIndex={0}
+              title="Crossfader"
+            />
+            <span className="crossfade-side-label">B</span>
+          </div>
+          <div className="crossfader-center-badge">Crossfader</div>
+
+          <div className="visualizer-controls" style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '20px 0 10px 0' }}>
+             <button onClick={() => setVisualizerType('bars')} style={{ background: visualizerType === 'bars' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'bars' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }} tabIndex={0}>Bars</button>
+             <button onClick={() => setVisualizerType('waveform')} style={{ background: visualizerType === 'waveform' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'waveform' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }} tabIndex={0}>Waveform</button>
+             <button onClick={() => setVisualizerType('circle')} style={{ background: visualizerType === 'circle' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'circle' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }} tabIndex={0}>Circle</button>
+             <button onClick={() => setVisualizerType('fire')} style={{ background: visualizerType === 'fire' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'fire' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }} tabIndex={0}>Fire</button>
+             <button onClick={() => setVisualizerType('disc')} style={{ background: visualizerType === 'disc' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'disc' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }} tabIndex={0}>Disc</button>
+          </div>
+        </div>
+
+        {/* SHARED CANVAS VISUALIZER */}
+        {visualizerType !== 'disc' && (
+          <div className="shared-visualizer-container">
+            <canvas ref={canvasRef} width="600" height="180" className="mixer-canvas-visualizer"></canvas>
           </div>
         )}
       </div>
-      
-      <div className="visualizer-controls" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
-         <button onClick={() => setVisualizerType('bars')} style={{ background: visualizerType === 'bars' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'bars' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Bars</button>
-         <button onClick={() => setVisualizerType('waveform')} style={{ background: visualizerType === 'waveform' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'waveform' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Waveform</button>
-         <button onClick={() => setVisualizerType('circle')} style={{ background: visualizerType === 'circle' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'circle' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Circle</button>
-         <button onClick={() => setVisualizerType('disc')} style={{ background: visualizerType === 'disc' ? 'var(--color-primary)' : 'var(--color-surface)', color: visualizerType === 'disc' ? 'var(--color-base)' : 'var(--color-text-main)', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Disc</button>
-      </div>
-      
-      
-      <h2 className="np-title">{currentTrack ? currentTrack.title : 'No Track Selected'}</h2>
-      <h3 className="np-artist">{currentTrack ? currentTrack.artist : '--'}</h3>
-    </div>
-  );
+    );
   };
 
   const renderSettingsDashboard = () => (
@@ -481,7 +786,7 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
       <div className="header-section">
         <h2>
           {activeView === 'library' ? 'Your Library' : 
-           activeView.startsWith('playlist-') ? JSON.parse(localStorage.getItem('mtc_playlists') || '[]').find(p => p.id === activeView.split('-')[1])?.name :
+           activeView.startsWith('playlist-') ? playlists.find(p => p.id === activeView.split('-')[1])?.name :
            activeView === 'queue' ? 'Up Next Queue' :
            'Tracks'}
         </h2>
@@ -533,47 +838,65 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
           </div>
         ) : (
           <ul>
-            {displayTracks.map((track, index) => (
-              <li 
-                key={`${track.id}-${index}`} 
-                className={currentTrack?.id === track.id && activeView !== 'queue' ? 'playing' : ''}
-                onClick={(e) => {
-                  if (isSelectMode) {
-                    toggleTrackSelection(e, track.id);
-                  } else if (activeView === 'queue') {
-                    onPlayTrack && onPlayTrack(track, queue);
-                  } else {
-                    onPlayTrack && onPlayTrack(track, filteredTracks);
-                  }
-                }}
-                style={{ cursor: 'pointer', background: selectedTracks.includes(track.id) ? 'rgba(69, 162, 158, 0.2)' : '' }}
-              >
-                <div className="track-info">
-                  {isSelectMode && (
-                    <div style={{ marginRight: '10px', color: selectedTracks.includes(track.id) ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
-                      {selectedTracks.includes(track.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+            {displayTracks.map((track, index) => {
+              const isCurrentTrackA = currentTrackA?.id === track.id;
+              const isCurrentTrackB = currentTrackB?.id === track.id;
+              const isCurrentTrack = isCurrentTrackA || isCurrentTrackB;
+              const isPlayingTrack = (isCurrentTrackA && isPlayingA) || (isCurrentTrackB && isPlayingB);
+
+              return (
+                <li 
+                  key={`${track.id}-${index}`} 
+                  className={isCurrentTrack && activeView !== 'queue' ? 'playing' : ''}
+                  onClick={(e) => {
+                    if (isSelectMode) {
+                      toggleTrackSelection(e, track.id);
+                    } else {
+                      setSelectedTrackToLoad(track);
+                    }
+                  }}
+                  tabIndex={0}
+                  onKeyDown={(e) => handleKeyDown(e, (event) => {
+                    if (isSelectMode) {
+                      toggleTrackSelection(event, track.id);
+                    } else {
+                      setSelectedTrackToLoad(track);
+                    }
+                  })}
+                  style={{ cursor: 'pointer', background: selectedTracks.includes(track.id) ? 'rgba(69, 162, 158, 0.2)' : '' }}
+                >
+                  <div className="track-info">
+                    {isSelectMode && (
+                      <div style={{ marginRight: '10px', color: selectedTracks.includes(track.id) ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+                        {selectedTracks.includes(track.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                      </div>
+                    )}
+                    <div className="track-art">
+                      {isCurrentTrack && viewMode === 'list' && (
+                         isPlayingTrack ? (
+                           <div className="playing-indicator">
+                             <div className="bar"></div><div className="bar"></div><div className="bar"></div>
+                           </div>
+                         ) : (
+                           <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '10px' }}>
+                             {isCurrentTrackA ? 'A' : 'B'}
+                           </span>
+                         )
+                      )}
+                      {isCurrentTrack && viewMode === 'grid' && (
+                         <PlayCircle size={24} className="grid-playing-icon" />
+                      )}
                     </div>
-                  )}
-                  <div className="track-art">
-                    {currentTrack?.id === track.id && viewMode === 'list' && (
-                       <div className="playing-indicator">
-                         <div className="bar"></div><div className="bar"></div><div className="bar"></div>
-                       </div>
-                    )}
-                    {currentTrack?.id === track.id && viewMode === 'grid' && (
-                       <PlayCircle size={24} className="grid-playing-icon" />
-                    )}
+                    <div className="track-text">
+                      <span className="grid-title">
+                        {track.source === 'local' && <HardDrive size={12} style={{marginRight: '4px', verticalAlign: 'middle', color: 'var(--color-primary)'}} title="Local Offline File" />}
+                        {track.title}
+                      </span>
+                      {viewMode === 'grid' && <span className="grid-artist">{track.artist}</span>}
+                    </div>
                   </div>
-                  <div className="track-text">
-                    <span className="grid-title">
-                      {track.source === 'local' && <HardDrive size={12} style={{marginRight: '4px', verticalAlign: 'middle', color: 'var(--color-primary)'}} title="Local Offline File" />}
-                      {track.title}
-                    </span>
-                    {viewMode === 'grid' && <span className="grid-artist">{track.artist}</span>}
-                  </div>
-                </div>
-                {viewMode === 'list' && <span className="track-artist">{track.artist}</span>}
-                {viewMode === 'list' && <span className="track-dur">{track.dur}</span>}
+                  {viewMode === 'list' && <span className="track-artist">{track.artist}</span>}
+                  {viewMode === 'list' && <span className="track-dur">{track.dur}</span>}
                 
                 <div className="track-options-wrapper">
                   <button 
@@ -637,10 +960,10 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
 
                       {showAddToPlaylist === track.id && (
                         <div className="submenu-dropdown">
-                          {JSON.parse(localStorage.getItem('mtc_playlists') || '[]').length === 0 ? (
+                          {playlists.length === 0 ? (
                             <div className="menu-item disabled">No playlists yet</div>
                           ) : (
-                            JSON.parse(localStorage.getItem('mtc_playlists') || '[]').map(p => (
+                            playlists.map(p => (
                               <button key={p.id} className="menu-item" onClick={(e) => handleAddToPlaylist(e, track, p.id)}>
                                 {p.name}
                               </button>
@@ -652,8 +975,9 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
                   )}
                 </div>
               </li>
-                ))}
-              </ul>
+              );
+            })}
+          </ul>
             )}
           </div>
         </>
@@ -671,10 +995,10 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
             </button>
             {activeMenuId === 'multi-select' && showAddToPlaylist === 'multi-select' && (
               <div className="submenu-dropdown" style={{ bottom: '100%', top: 'auto', marginBottom: '10px', right: '0' }}>
-                {JSON.parse(localStorage.getItem('mtc_playlists') || '[]').length === 0 ? (
+                {playlists.length === 0 ? (
                   <div className="menu-item disabled">No playlists yet</div>
                 ) : (
-                  JSON.parse(localStorage.getItem('mtc_playlists') || '[]').map(p => (
+                  playlists.map(p => (
                     <button key={p.id} className="menu-item" onClick={() => handleAddMultipleToPlaylist(p.id)}>
                       {p.name}
                     </button>
@@ -689,6 +1013,56 @@ export default function MainPlayer({ onLeftSwipe, onRightSwipe, isMobile, refres
           >
             Cancel
           </button>
+        </div>
+      )}
+
+      {selectedTrackToLoad && (
+        <div className="load-deck-modal-overlay" onClick={() => setSelectedTrackToLoad(null)}>
+          <div className="load-deck-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>SELECT DECK</h3>
+            <div className="modal-track-info">
+              <span className="track-title">{selectedTrackToLoad.title}</span>
+              <span className="track-artist">{selectedTrackToLoad.artist}</span>
+            </div>
+            <div className="modal-buttons">
+              <button 
+                className="deck-btn deck-a" 
+                onClick={() => {
+                  onPlayTrack && onPlayTrack(selectedTrackToLoad, 'A', filteredTracks);
+                  setSelectedTrackToLoad(null);
+                }}
+                tabIndex={0}
+                onKeyDown={(e) => handleKeyDown(e, () => {
+                  onPlayTrack && onPlayTrack(selectedTrackToLoad, 'A', filteredTracks);
+                  setSelectedTrackToLoad(null);
+                })}
+              >
+                Load to Disc A
+              </button>
+              <button 
+                className="deck-btn deck-b" 
+                onClick={() => {
+                  onPlayTrack && onPlayTrack(selectedTrackToLoad, 'B', filteredTracks);
+                  setSelectedTrackToLoad(null);
+                }}
+                tabIndex={0}
+                onKeyDown={(e) => handleKeyDown(e, () => {
+                  onPlayTrack && onPlayTrack(selectedTrackToLoad, 'B', filteredTracks);
+                  setSelectedTrackToLoad(null);
+                })}
+              >
+                Load to Disc B
+              </button>
+            </div>
+            <button 
+              className="cancel-btn" 
+              onClick={() => setSelectedTrackToLoad(null)}
+              tabIndex={0}
+              onKeyDown={(e) => handleKeyDown(e, () => setSelectedTrackToLoad(null))}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </main>

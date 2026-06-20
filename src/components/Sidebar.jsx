@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Home, Library, SlidersHorizontal, Plus, Music, Search, Loader2, UploadCloud, Settings, FolderPlus, Download } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import { localAudioService } from '../services/localAudioService';
+import { get, set } from 'idb-keyval';
 import './Sidebar.css';
 
 export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setActiveView, searchQuery, setSearchQuery, onInstallPWA, canInstallPWA }) {
@@ -12,13 +13,26 @@ export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setAc
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const fileInputRef = useRef(null);
   const localFileInputRef = useRef(null);
-
-  // Load playlists from local storage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('mtc_playlists');
-    if (saved) {
-      setPlaylists(JSON.parse(saved));
+  const handleKeyDown = (e, callback) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback();
     }
+  };
+
+  // Load playlists from IndexedDB on mount
+  useEffect(() => {
+    const loadPlaylists = async () => {
+      try {
+        const saved = await get('mtc_playlists');
+        if (saved) {
+          setPlaylists(saved);
+        }
+      } catch (err) {
+        console.error('Failed to load playlists from IndexedDB:', err);
+      }
+    };
+    loadPlaylists();
   }, []);
 
   // Drag and drop handlers (mocked for now)
@@ -79,13 +93,17 @@ export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setAc
     }
   };
 
-  const submitPlaylist = (e) => {
+  const submitPlaylist = async (e) => {
     e.preventDefault();
     if (newPlaylistName.trim() !== "") {
       const newPlaylist = { id: Date.now().toString(), name: newPlaylistName.trim() };
       const updated = [...playlists, newPlaylist];
       setPlaylists(updated);
-      localStorage.setItem('mtc_playlists', JSON.stringify(updated));
+      try {
+        await set('mtc_playlists', updated);
+      } catch (err) {
+        console.error('Failed to save playlists to IndexedDB:', err);
+      }
     }
     setIsCreatingPlaylist(false);
     setNewPlaylistName('');
@@ -144,13 +162,28 @@ export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setAc
 
       <div className="sidebar-nav">
         <ul>
-          <li className={activeView === 'home' ? 'active' : ''} onClick={() => navTo('home')}>
+          <li 
+            className={activeView === 'home' ? 'active' : ''} 
+            onClick={() => navTo('home')}
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, () => navTo('home'))}
+          >
             <Home size={18} /> Home
           </li>
-          <li className={activeView === 'library' ? 'active' : ''} onClick={() => navTo('library')}>
+          <li 
+            className={activeView === 'library' ? 'active' : ''} 
+            onClick={() => navTo('library')}
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, () => navTo('library'))}
+          >
             <Library size={18} /> Library
           </li>
-          <li className={activeView === 'mixer' ? 'active' : ''} onClick={() => navTo('mixer')}>
+          <li 
+            className={activeView === 'mixer' ? 'active' : ''} 
+            onClick={() => navTo('mixer')}
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, () => navTo('mixer'))}
+          >
             <SlidersHorizontal size={18} /> Stem Mixer
           </li>
         </ul>
@@ -197,6 +230,8 @@ export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setAc
                 key={p.id} 
                 className={activeView === `playlist-${p.id}` ? 'active' : ''}
                 onClick={() => navTo(`playlist-${p.id}`)}
+                tabIndex={0}
+                onKeyDown={(e) => handleKeyDown(e, () => navTo(`playlist-${p.id}`))}
               >
                 <Music size={14} /> {p.name}
               </li>
@@ -207,7 +242,12 @@ export default function Sidebar({ onNavigate, onUploadSuccess, activeView, setAc
 
       <div className="sidebar-footer" style={{ marginTop: 'auto', paddingTop: '20px' }}>
         <ul>
-          <li className={activeView === 'settings' ? 'active' : ''} onClick={() => navTo('settings')}>
+          <li 
+            className={activeView === 'settings' ? 'active' : ''} 
+            onClick={() => navTo('settings')}
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, () => navTo('settings'))}
+          >
             <Settings size={18} /> Settings
           </li>
         </ul>
